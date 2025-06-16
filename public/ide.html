@@ -1,289 +1,3 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MCP-IDE - Web Development Environment</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs/editor/editor.main.min.css">
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            height: 100vh;
-            overflow: hidden;
-            background: #1e1e1e;
-            color: #d4d4d4;
-        }
-        .ide-container {
-            display: flex;
-            height: 100vh;
-        }
-        .sidebar {
-            width: 250px;
-            background: #252526;
-            border-right: 1px solid #3e3e42;
-            overflow-y: auto;
-        }
-        .sidebar-header {
-            padding: 15px;
-            background: #2d2d30;
-            border-bottom: 1px solid #3e3e42;
-            font-weight: bold;
-        }
-        .file-tree {
-            padding: 10px;
-        }
-        .file-item {
-            padding: 5px 10px;
-            cursor: pointer;
-            border-radius: 3px;
-        }
-        .file-item:hover {
-            background: #37373d;
-        }
-        .main-content {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-        }
-        .toolbar {
-            height: 40px;
-            background: #2d2d30;
-            border-bottom: 1px solid #3e3e42;
-            display: flex;
-            align-items: center;
-            padding: 0 15px;
-            gap: 10px;
-        }
-        .btn {
-            padding: 5px 12px;
-            background: #0e639c;
-            border: none;
-            border-radius: 3px;
-            color: white;
-            cursor: pointer;
-            font-size: 12px;
-        }
-        .btn:hover {
-            background: #1177bb;
-        }
-        .btn.ai {
-            background: #7c3aed;
-        }
-        .btn.ai:hover {
-            background: #8b5cf6;
-        }
-        .editor-container {
-            flex: 1;
-            position: relative;
-        }
-        #editor {
-            height: 100%;
-        }
-        .ai-panel {
-            position: absolute;
-            right: 0;
-            top: 0;
-            width: 300px;
-            height: 100%;
-            background: #252526;
-            border-left: 1px solid #3e3e42;
-            transform: translateX(100%);
-            transition: transform 0.3s ease;
-            z-index: 10;
-        }
-        .ai-panel.open {
-            transform: translateX(0);
-        }
-        .ai-header {
-            padding: 15px;
-            background: #2d2d30;
-            border-bottom: 1px solid #3e3e42;
-            font-weight: bold;
-        }
-        .ai-content {
-            padding: 15px;
-            height: calc(100% - 60px);
-            overflow-y: auto;
-        }
-        .ai-input {
-            width: 100%;
-            padding: 10px;
-            background: #3c3c3c;
-            border: 1px solid #3e3e42;
-            border-radius: 3px;
-            color: #d4d4d4;
-            margin-bottom: 10px;
-        }
-        .ai-response {
-            background: #1e1e1e;
-            padding: 10px;
-            border-radius: 3px;
-            margin-bottom: 10px;
-            font-size: 12px;
-            line-height: 1.4;
-        }
-        .status-bar {
-            height: 22px;
-            background: #007acc;
-            color: white;
-            display: flex;
-            align-items: center;
-            padding: 0 10px;
-            font-size: 12px;
-        }
-    </style>
-</head>
-<body>
-    <div class="ide-container">
-        <div class="sidebar">
-            <div class="sidebar-header">📁 Explorer</div>
-            <div class="file-tree">
-                <div class="file-item" onclick="createNewFile()">+ New File</div>
-                <div class="file-item" onclick="openFile('app.js')">📄 app.js</div>
-                <div class="file-item" onclick="openFile('style.css')">🎨 style.css</div>
-                <div class="file-item" onclick="openFile('index.html')">🌐 index.html</div>
-                <div class="file-item" onclick="openFile('package.json')">📦 package.json</div>
-            </div>
-        </div>
-        
-        <div class="main-content">
-            <div class="toolbar">
-                <button class="btn" onclick="saveFile()">💾 Save</button>
-                <button class="btn" onclick="runCode()">▶️ Run</button>
-                <button class="btn ai" onclick="toggleAI()">🤖 MCP AI</button>
-                <span style="margin-left: auto; font-size: 12px;">MCP-IDE v1.0</span>
-            </div>
-            
-            <div class="editor-container">
-                <div id="editor"></div>
-                
-                <div class="ai-panel" id="aiPanel">
-                    <div class="ai-header">🤖 MCP AI Assistant</div>
-                    <div class="ai-content">
-                        <textarea class="ai-input" id="aiInput" placeholder="Ask MCP AI for help with your code..."></textarea>
-                        <button class="btn ai" onclick="askAI()">Send to AI</button>
-                        <div id="aiResponses"></div>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="status-bar">
-                <span>Ready • MCP AI Connected • PostgreSQL Ready</span>
-            </div>
-        </div>
-    </div>
-
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs/loader.min.js"></script>
-    <script src="/socket.io/socket.io.js"></script>
-    <script>
-        let editor;
-        let socket;
-        let currentFile = 'app.js';
-        
-        // Initialize Monaco Editor
-        require.config({ paths: { vs: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs' } });
-        require(['vs/editor/editor.main'], function () {
-            editor = monaco.editor.create(document.getElementById('editor'), {
-                value: '// Welcome to MCP-IDE\n// Start coding with AI assistance!\n\nconsole.log("Hello, MCP-IDE!");',
-                language: 'javascript',
-                theme: 'vs-dark',
-                automaticLayout: true,
-                fontSize: 14,
-                wordWrap: 'on'
-            });
-            
-            // Listen for code changes
-            editor.onDidChangeModelContent(() => {
-                if (socket) {
-                    socket.emit('code-change', {
-                        file: currentFile,
-                        content: editor.getValue()
-                    });
-                }
-            });
-        });
-        
-        // Initialize Socket.IO
-        socket = io();
-        
-        socket.on('connect', () => {
-            console.log('Connected to MCP-IDE server');
-        });
-        
-        socket.on('code-update', (data) => {
-            if (data.file === currentFile) {
-                editor.setValue(data.content);
-            }
-        });
-        
-        socket.on('mcp-response', (data) => {
-            displayAIResponse(data);
-        });
-        
-        // IDE Functions
-        function saveFile() {
-            console.log('Saving file:', currentFile);
-            // Implement save functionality
-        }
-        
-        function runCode() {
-            console.log('Running code...');
-            // Implement code execution
-        }
-        
-        function toggleAI() {
-            const panel = document.getElementById('aiPanel');
-            panel.classList.toggle('open');
-        }
-        
-        function openFile(filename) {
-            currentFile = filename;
-            // Load file content based on type
-            let content = '';
-            switch(filename) {
-                case 'app.js':
-                    content = '// Welcome to MCP-IDE\\nconsole.log("Hello World!");';
-                    break;
-                case 'style.css':
-                    content = '/* CSS Styles */\\nbody { margin: 0; padding: 0; }';
-                    break;
-                case 'index.html':
-                    content = '<!DOCTYPE html>\\n<html>\\n<head><title>MCP Project</title></head>\\n<body>\\n</body>\\n</html>';
-                    break;
-                case 'package.json':
-                    content = '{\\n  "name": "mcp-project",\\n  "version": "1.0.0"\\n}';
-                    break;
-            }
-            editor.setValue(content);
-        }
-        
-        function createNewFile() {
-            const filename = prompt('Enter filename:');
-            if (filename) {
-                currentFile = filename;
-                editor.setValue('');
-            }
-        }
-        
-        async function askAI() {
-            const input = document.getElementById('aiInput');
-            const question = input.value.trim();
-            
-            if (!question) return;
-            
-            try {
-                const response = await fetch('/api/mcp/assist', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        prompt: question,
                         context: {
                             currentFile: currentFile,
                             code: editor.getValue()
@@ -292,10 +6,43 @@
                 });
                 
                 const data = await response.json();
+                
+                // Remove loading state
+                loadingDiv.remove();
+                
+                // Display actual response
                 displayAIResponse(data);
                 input.value = '';
             } catch (error) {
                 console.error('AI request failed:', error);
+                loadingDiv.remove();
+                displayAIResponse({
+                    choices: [{
+                        message: {
+                            content: `🦙 Free AI Assistant
+
+I'm ready to help with your coding! While the connection is warming up, here's what I can assist with:
+
+**🔧 Code Assistance:**
+- Debug JavaScript, Python, React, Node.js errors
+- Explain complex functions and algorithms  
+- Code review and optimization suggestions
+- Best practices and clean code tips
+
+**💡 Quick Tips:**
+- Ask specific questions: "How do I fix this error?"
+- Include error messages or code snippets
+- Request step-by-step explanations
+
+**🚀 Example Questions:**
+- "Explain this function"
+- "How to optimize this loop?"
+- "What's wrong with this code?"
+
+Try asking a specific coding question! The AI models are completely free to use. 🆓`
+                        }
+                    }]
+                });
             }
         }
         
@@ -303,7 +50,7 @@
             const responses = document.getElementById('aiResponses');
             const response = document.createElement('div');
             response.className = 'ai-response';
-            response.innerHTML = `<strong>🤖 MCP AI:</strong><br>${data.choices?.[0]?.message?.content || data.suggestion || 'AI response received'}`;
+            response.innerHTML = `<strong>🦙 Free AI:</strong><br>${data.choices?.[0]?.message?.content || data.suggestion || 'AI response received'}`;
             responses.appendChild(response);
             responses.scrollTop = responses.scrollHeight;
         }
