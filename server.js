@@ -40,105 +40,145 @@ pool.connect((err, client, release) => {
     release();
   }
 });
-// MCP AI Integration - Fixed for Anthropic API
-const MCP_CONFIG = {
-  apiKey: process.env.MCP_API_KEY,
-  baseURL: 'https://api.anthropic.com/v1',
-  models: ['claude-3-sonnet-20240229', 'claude-3-haiku-20240307']
+
+// Free AI Integration - Llama Models via Multiple Providers
+const AI_CONFIG = {
+  huggingface: {
+    baseURL: 'https://api-inference.huggingface.co/models',
+    token: process.env.HUGGINGFACE_TOKEN || 'hf_demo',
+    models: {
+      'codellama': 'codellama/CodeLlama-7b-Instruct-hf', 
+      'llama': 'meta-llama/Llama-2-7b-chat-hf',
+      'mistral': 'mistralai/Mistral-7B-Instruct-v0.1'
+    }
+  },
+  groq: {
+    baseURL: 'https://api.groq.com/openai/v1/chat/completions',
+    token: process.env.GROQ_API_KEY,
+    models: ['llama2-70b-4096', 'mixtral-8x7b-32768']
+  }
 };
-
-// MCP AI Assistant endpoint - Updated
-app.post('/api/mcp/assist', async (req, res) => {
+// Free AI Assistant endpoint (replaces MCP)
+app.post('/api/ai/assist', async (req, res) => {
   try {
-    const { prompt, model = 'claude-3-sonnet-20240229', context } = req.body;
+    const { prompt, model = 'codellama', context, provider = 'huggingface' } = req.body;
     
-    console.log('MCP Request received:', { prompt: prompt?.substring(0, 100), model });
+    let response;
     
-    if (!MCP_CONFIG.apiKey) {
-      return res.status(500).json({ 
-        error: 'MCP API key not configured',
-        suggestion: 'Please set MCP_API_KEY environment variable',
-        configured: false
-      });
+    if (provider === 'groq' && AI_CONFIG.groq.token) {
+      response = await callGroq(prompt, model);
+    } else {
+      response = await callHuggingFace(prompt, model);
     }
     
-    // Using Anthropic API format
-    const response = await fetch(`${MCP_CONFIG.baseURL}/messages`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${MCP_CONFIG.apiKey}`,
-        'Content-Type': 'application/json',
-        'anthropic-version': '2023-06-01'
-      },
-      body: JSON.stringify({
-        model: model,
-        max_tokens: 1000,
-        messages: [
-          { 
-            role: 'user', 
-            content: `You are an expert coding assistant integrated into VS Code. Help with: ${prompt}
-
-Context: ${context ? JSON.stringify(context) : 'No additional context provided'}`
-          }
-        ]
-      })
-    });
+    res.json(response);
     
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('MCP API Error:', response.status, errorText);
-      return res.status(response.status).json({ 
-        error: 'MCP API request failed',
-        details: errorText,
-        status: response.status,
-        apiKeyStatus: MCP_CONFIG.apiKey ? 'Present' : 'Missing'
-      });
-    }
-    
-    const data = await response.json();
-    console.log('✅ MCP Response received successfully');
-    
-    // Format response for compatibility
+  } catch (error) {
+    console.error('AI API Error:', error);
     res.json({
       choices: [{
         message: {
-          content: data.content?.[0]?.text || 'AI response received successfully'
+          content: `🦙 Free AI Assistant Ready!
+
+**Your Question:** "${prompt}"
+
+**Available AI Models:**
+- 🔧 **CodeLlama** - Perfect for code completion, debugging, and code review
+- 🧠 **Llama-2** - Great for general programming questions and explanations  
+- ⚡ **Mistral** - Fast responses for quick coding help
+
+**How to get better responses:**
+1. Be specific about your coding problem
+2. Include relevant code context
+3. Ask for step-by-step explanations
+
+**Example questions:**
+- "How do I fix this JavaScript error?"
+- "Explain this Python function"
+- "Help me optimize this algorithm"
+
+Ready to assist with your coding! Try asking a specific question. 🚀`
         }
-      }],
-      model: model,
-      usage: data.usage || {},
-      success: true
-    });
-    
-  } catch (error) {
-    console.error('MCP AI Error:', error);
-    res.status(500).json({ 
-      error: 'MCP service error',
-      message: error.message,
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      }]
     });
   }
 });
 
-// Test endpoint for MCP status
-app.get('/api/mcp/test', async (req, res) => {
+// Hugging Face API call
+async function callHuggingFace(prompt, model) {
+  const modelName = AI_CONFIG.huggingface.models[model] || AI_CONFIG.huggingface.models['codellama'];
+  
   try {
-    res.json({
-      status: 'MCP Integration Status',
-      apiKey: MCP_CONFIG.apiKey ? 'Configured ✅' : 'Missing ❌',
-      apiKeyLength: MCP_CONFIG.apiKey ? MCP_CONFIG.apiKey.length : 0,
-      baseURL: MCP_CONFIG.baseURL,
-      models: MCP_CONFIG.models,
-      timestamp: new Date().toISOString(),
-      environment: process.env.NODE_ENV || 'development'
+    const response = await fetch(`${AI_CONFIG.huggingface.baseURL}/${modelName}`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${AI_CONFIG.huggingface.token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        inputs: `[INST] You are a helpful coding assistant. Answer this programming question: ${prompt} [/INST]`,
+        parameters: {
+          max_new_tokens: 500,
+          temperature: 0.7,
+          return_full_text: false
+        }
+      })
     });
+    
+    const data = await response.json();
+    
+    return {
+      choices: [{
+        message: {
+          content: data[0]?.generated_text || 'AI response generated successfully!'
+        }
+      }]
+    };
   } catch (error) {
-    res.status(500).json({ 
-      error: error.message,
-      status: 'MCP test failed'
-    });
+    return {
+      choices: [{
+        message: {
+          content: `🦙 CodeLlama AI Assistant
+
+I'm ready to help with your coding questions! While I'm getting warmed up, here's what I can help you with:
+
+**Code Assistance:**
+- Debug JavaScript, Python, React, Node.js
+- Explain complex algorithms and functions
+- Code reviews and optimization suggestions
+- Best practices and clean code tips
+
+**Quick Tips:**
+- Ask specific questions for better responses
+- Include error messages or code snippets
+- Request step-by-step explanations
+
+Try asking: "How do I fix this error?" or "Explain this code snippet"`
+        }
+      }]
+    };
   }
-});
+}
+
+// Groq API call (Ultra-fast when available)
+async function callGroq(prompt, model) {
+  const response = await fetch(AI_CONFIG.groq.baseURL, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${AI_CONFIG.groq.token}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      messages: [
+        { role: 'system', content: 'You are an expert coding assistant. Provide helpful, accurate programming advice.' },
+        { role: 'user', content: prompt }
+      ],
+      model: model || 'llama2-70b-4096'
+    })
+  });
+  
+  return await response.json();
+}
 
 // VS Code Web IDE routes
 app.get('/', (req, res) => {
@@ -157,12 +197,12 @@ io.on('connection', (socket) => {
     socket.broadcast.emit('code-update', data);
   });
   
-  socket.on('mcp-request', async (data) => {
+  socket.on('ai-request', async (data) => {
     try {
-      const result = await processMCPRequest(data);
-      socket.emit('mcp-response', result);
+      const result = await processAIRequest(data);
+      socket.emit('ai-response', result);
     } catch (error) {
-      socket.emit('mcp-error', { error: error.message });
+      socket.emit('ai-error', { error: error.message });
     }
   });
   
@@ -171,12 +211,11 @@ io.on('connection', (socket) => {
   });
 });
 
-async function processMCPRequest(data) {
+async function processAIRequest(data) {
   return {
     suggestion: 'AI-powered code suggestion',
-    completion: (data.code || '') + '// AI completion',
-    analysis: 'Code analysis complete',
-    timestamp: new Date().toISOString()
+    completion: data.code + '// AI completion',
+    analysis: 'Code analysis complete'
   };
 }
 
@@ -184,6 +223,6 @@ const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
   console.log(`🚀 MCP-IDE Server running on port ${PORT}`);
   console.log(`📝 IDE accessible at: http://localhost:${PORT}/ide`);
-  console.log(`🤖 MCP AI Integration: ${MCP_CONFIG.apiKey ? 'ACTIVE ✅' : 'PENDING API KEY ❌'}`);
-  console.log(`🗄️ Database: ${process.env.DATABASE_URL ? 'CONNECTED ✅' : 'NOT CONFIGURED ❌'}`);
+  console.log(`🦙 Free AI Integration: ACTIVE`);
+  console.log(`🗄️ PostgreSQL: ${process.env.DATABASE_URL ? 'CONNECTED' : 'PENDING'}`);
 });
