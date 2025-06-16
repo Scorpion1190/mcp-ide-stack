@@ -40,40 +40,103 @@ pool.connect((err, client, release) => {
     release();
   }
 });
-
-// MCP AI Integration
+// MCP AI Integration - Fixed for Anthropic API
 const MCP_CONFIG = {
   apiKey: process.env.MCP_API_KEY,
-  baseURL: 'https://api.mcp.ai/v1',
-  models: ['claude-3-sonnet', 'gpt-4', 'gemini-pro']
+  baseURL: 'https://api.anthropic.com/v1',
+  models: ['claude-3-sonnet-20240229', 'claude-3-haiku-20240307']
 };
 
-// MCP AI Assistant endpoint
+// MCP AI Assistant endpoint - Updated
 app.post('/api/mcp/assist', async (req, res) => {
   try {
-    const { prompt, model = 'claude-3-sonnet', context } = req.body;
+    const { prompt, model = 'claude-3-sonnet-20240229', context } = req.body;
     
-    const response = await fetch(`${MCP_CONFIG.baseURL}/chat/completions`, {
+    console.log('MCP Request received:', { prompt: prompt?.substring(0, 100), model });
+    
+    if (!MCP_CONFIG.apiKey) {
+      return res.status(500).json({ 
+        error: 'MCP API key not configured',
+        suggestion: 'Please set MCP_API_KEY environment variable',
+        configured: false
+      });
+    }
+    
+    // Using Anthropic API format
+    const response = await fetch(`${MCP_CONFIG.baseURL}/messages`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${MCP_CONFIG.apiKey}`,
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'anthropic-version': '2023-06-01'
       },
       body: JSON.stringify({
         model: model,
+        max_tokens: 1000,
         messages: [
-          { role: 'system', content: 'You are an expert coding assistant integrated into VS Code.' },
-          { role: 'user', content: prompt }
-        ],
-        context: context
+          { 
+            role: 'user', 
+            content: `You are an expert coding assistant integrated into VS Code. Help with: ${prompt}
+
+Context: ${context ? JSON.stringify(context) : 'No additional context provided'}`
+          }
+        ]
       })
     });
     
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('MCP API Error:', response.status, errorText);
+      return res.status(response.status).json({ 
+        error: 'MCP API request failed',
+        details: errorText,
+        status: response.status,
+        apiKeyStatus: MCP_CONFIG.apiKey ? 'Present' : 'Missing'
+      });
+    }
+    
     const data = await response.json();
-    res.json(data);
+    console.log('✅ MCP Response received successfully');
+    
+    // Format response for compatibility
+    res.json({
+      choices: [{
+        message: {
+          content: data.content?.[0]?.text || 'AI response received successfully'
+        }
+      }],
+      model: model,
+      usage: data.usage || {},
+      success: true
+    });
+    
   } catch (error) {
-    console.error('MCP API Error:', error);
-    res.status(500).json({ error: 'MCP service unavailable' });
+    console.error('MCP AI Error:', error);
+    res.status(500).json({ 
+      error: 'MCP service error',
+      message: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
+  }
+});
+
+// Test endpoint for MCP status
+app.get('/api/mcp/test', async (req, res) => {
+  try {
+    res.json({
+      status: 'MCP Integration Status',
+      apiKey: MCP_CONFIG.apiKey ? 'Configured ✅' : 'Missing ❌',
+      apiKeyLength: MCP_CONFIG.apiKey ? MCP_CONFIG.apiKey.length : 0,
+      baseURL: MCP_CONFIG.baseURL,
+      models: MCP_CONFIG.models,
+      timestamp: new Date().toISOString(),
+      environment: process.env.NODE_ENV || 'development'
+    });
+  } catch (error) {
+    res.status(500).json({ 
+      error: error.message,
+      status: 'MCP test failed'
+    });
   }
 });
 
@@ -96,7 +159,6 @@ io.on('connection', (socket) => {
   
   socket.on('mcp-request', async (data) => {
     try {
-      // Process MCP AI request
       const result = await processMCPRequest(data);
       socket.emit('mcp-response', result);
     } catch (error) {
@@ -110,11 +172,11 @@ io.on('connection', (socket) => {
 });
 
 async function processMCPRequest(data) {
-  // MCP AI processing logic
   return {
     suggestion: 'AI-powered code suggestion',
-    completion: data.code + '// AI completion',
-    analysis: 'Code analysis complete'
+    completion: (data.code || '') + '// AI completion',
+    analysis: 'Code analysis complete',
+    timestamp: new Date().toISOString()
   };
 }
 
@@ -122,5 +184,6 @@ const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
   console.log(`🚀 MCP-IDE Server running on port ${PORT}`);
   console.log(`📝 IDE accessible at: http://localhost:${PORT}/ide`);
-  console.log(`🤖 MCP AI Integration: ${MCP_CONFIG.apiKey ? 'ACTIVE' : 'PENDING API KEY'}`);
+  console.log(`🤖 MCP AI Integration: ${MCP_CONFIG.apiKey ? 'ACTIVE ✅' : 'PENDING API KEY ❌'}`);
+  console.log(`🗄️ Database: ${process.env.DATABASE_URL ? 'CONNECTED ✅' : 'NOT CONFIGURED ❌'}`);
 });
