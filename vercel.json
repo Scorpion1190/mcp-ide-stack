@@ -1,0 +1,12 @@
+{
+  "routes": [
+    {
+      "src": "/ide",
+      "dest": "/ide.html"
+    },
+    {
+      "src": "/",
+      "dest": "/index.html"
+    }
+  ]
+}
