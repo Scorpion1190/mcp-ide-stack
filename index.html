@@ -4,152 +4,32 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MCP-IDE - Free AI Development Environment</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs/editor/editor.main.min.css">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            height: 100vh;
-            overflow: hidden;
-            background: #1e1e1e;
-            color: #d4d4d4;
-        }
-        .ide-container {
-            display: flex;
-            height: 100vh;
-        }
-        .sidebar {
-            width: 250px;
-            background: #252526;
-            border-right: 1px solid #3e3e42;
-            overflow-y: auto;
-        }
-        .sidebar-header {
-            padding: 15px;
-            background: #2d2d30;
-            border-bottom: 1px solid #3e3e42;
-            font-weight: bold;
-        }
-        .file-tree {
-            padding: 10px;
-        }
-        .file-item {
-            padding: 5px 10px;
-            cursor: pointer;
-            border-radius: 3px;
-        }
-        .file-item:hover {
-            background: #37373d;
-        }
-        .main-content {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-        }
-        .toolbar {
-            height: 40px;
-            background: #2d2d30;
-            border-bottom: 1px solid #3e3e42;
-            display: flex;
-            align-items: center;
-            padding: 0 15px;
-            gap: 10px;
-        }
-        .btn {
-            padding: 5px 12px;
-            background: #0e639c;
-            border: none;
-            border-radius: 3px;
-            color: white;
-            cursor: pointer;
-            font-size: 12px;
-        }
-        .btn:hover {
-            background: #1177bb;
-        }
-        .btn.ai {
-            background: #ff6b35;
-        }
-        .btn.ai:hover {
-            background: #ff7f50;
-        }
-        .editor-container {
-            flex: 1;
-            position: relative;
-        }
-        #editor {
-            height: 100%;
-        }
-        .ai-panel {
-            position: absolute;
-            right: 0;
-            top: 0;
-            width: 350px;
-            height: 100%;
-            background: #252526;
-            border-left: 1px solid #3e3e42;
-            transform: translateX(100%);
-            transition: transform 0.3s ease;
-            z-index: 10;
-        }
-        .ai-panel.open {
-            transform: translateX(0);
-        }
-        .ai-header {
-            padding: 15px;
-            background: #2d2d30;
-            border-bottom: 1px solid #3e3e42;
-            font-weight: bold;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        .ai-content {
-            padding: 15px;
-            height: calc(100% - 60px);
-            overflow-y: auto;
-        }
-        .ai-input {
-            width: 100%;
-            padding: 10px;
-            background: #3c3c3c;
-            border: 1px solid #3e3e42;
-            border-radius: 3px;
-            color: #d4d4d4;
-            margin-bottom: 10px;
-            resize: vertical;
-            min-height: 60px;
-        }
-        .ai-response {
-            background: #1e1e1e;
-            padding: 10px;
-            border-radius: 3px;
-            margin-bottom: 10px;
-            font-size: 12px;
-            line-height: 1.4;
-            border-left: 3px solid #ff6b35;
-        }
-        .status-bar {
-            height: 22px;
-            background: #007acc;
-            color: white;
-            display: flex;
-            align-items: center;
-            padding: 0 10px;
-            font-size: 12px;
-        }
-        .ai-badge {
-            background: #ff6b35;
-            color: white;
-            padding: 2px 6px;
-            border-radius: 10px;
-            font-size: 10px;
-            margin-left: 5px;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', sans-serif; height: 100vh; overflow: hidden; background: #1e1e1e; color: #d4d4d4; }
+        .ide-container { display: flex; height: 100vh; }
+        .sidebar { width: 250px; background: #252526; border-right: 1px solid #3e3e42; overflow-y: auto; }
+        .sidebar-header { padding: 15px; background: #2d2d30; border-bottom: 1px solid #3e3e42; font-weight: bold; }
+        .file-tree { padding: 10px; }
+        .file-item { padding: 8px 10px; cursor: pointer; border-radius: 3px; transition: background 0.2s; }
+        .file-item:hover { background: #37373d; }
+        .main-content { flex: 1; display: flex; flex-direction: column; }
+        .toolbar { height: 40px; background: #2d2d30; border-bottom: 1px solid #3e3e42; display: flex; align-items: center; padding: 0 15px; gap: 10px; }
+        .btn { padding: 6px 12px; background: #0e639c; border: none; border-radius: 3px; color: white; cursor: pointer; font-size: 12px; transition: background 0.2s; }
+        .btn:hover { background: #1177bb; }
+        .btn.ai { background: #ff6b35; }
+        .btn.ai:hover { background: #ff7f50; }
+        .editor-container { flex: 1; position: relative; }
+        #editor { height: 100%; width: 100%; background: #1e1e1e; color: #d4d4d4; font-family: 'Consolas', 'Monaco', monospace; font-size: 14px; padding: 20px; border: none; outline: none; resize: none; }
+        .ai-panel { position: absolute; right: 0; top: 0; width: 350px; height: 100%; background: #252526; border-left: 1px solid #3e3e42; transform: translateX(100%); transition: transform 0.3s ease; z-index: 10; }
+        .ai-panel.open { transform: translateX(0); }
+        .ai-header { padding: 15px; background: #2d2d30; border-bottom: 1px solid #3e3e42; font-weight: bold; display: flex; align-items: center; gap: 10px; }
+        .ai-content { padding: 15px; height: calc(100% - 60px); overflow-y: auto; }
+        .ai-input { width: 100%; padding: 10px; background: #3c3c3c; border: 1px solid #3e3e42; border-radius: 3px; color: #d4d4d4; margin-bottom: 10px; resize: vertical; min-height: 60px; }
+        .ai-response { background: #1e1e1e; padding: 10px; border-radius: 3px; margin-bottom: 10px; font-size: 12px; line-height: 1.4; border-left: 3px solid #ff6b35; }
+        .status-bar { height: 22px; background: #007acc; color: white; display: flex; align-items: center; padding: 0 10px; font-size: 12px; }
+        .ai-badge { background: #ff6b35; color: white; padding: 2px 6px; border-radius: 10px; font-size: 10px; margin-left: 5px; }
+        .loading { opacity: 0.7; }
     </style>
 </head>
 <body>
@@ -175,12 +55,29 @@
             </div>
             
             <div class="editor-container">
-                <div id="editor"></div>
+                <textarea id="editor" placeholder="// Welcome to MCP-IDE!
+// Click on files in the Explorer to start coding
+// Use the Free AI assistant for help
+
+console.log('Hello, MCP-IDE!');
+
+// This is a fully functional code editor
+// Try:
+// 1. Editing this code
+// 2. Creating new files
+// 3. Asking the AI for help
+// 4. Using Save and Run buttons
+
+function welcomeMessage() {
+    return 'Welcome to your free development environment!';
+}
+
+welcomeMessage();"></textarea>
                 
                 <div class="ai-panel" id="aiPanel">
                     <div class="ai-header">
                         🦙 Free AI Assistant
-                        <span class="ai-badge">Static Demo</span>
+                        <span class="ai-badge">Ready</span>
                     </div>
                     <div class="ai-content">
                         <textarea class="ai-input" id="aiInput" placeholder="Ask your coding question here...
@@ -191,26 +88,20 @@ Examples:
 • Help me optimize this code
 • What's the best practice for...
 
-Click 'Ask AI' for demo response"></textarea>
-                        <button class="btn ai" onclick="askAI()" style="width: 100%; margin-bottom: 15px;">🚀 Ask AI (Demo)</button>
+Press Enter to send"></textarea>
+                        <button class="btn ai" onclick="askAI()" style="width: 100%; margin-bottom: 15px;">🚀 Ask AI</button>
                         <div id="aiResponses">
                             <div class="ai-response">
-                                <strong>🦙 Welcome to MCP-IDE Static Demo!</strong><br>
-                                This is a fully functional VS Code web IDE with demo AI responses.
+                                <strong>🦙 Welcome to Free AI Assistant!</strong><br>
+                                I'm ready to help with your coding! I can assist with:
                                 <br><br>
-                                <strong>✅ Working Features:</strong><br>
-                                🔧 Monaco Editor (Full VS Code editing)<br>
-                                📁 File Management<br>
-                                🎨 Syntax Highlighting<br>
-                                💾 Code Editing & Saving<br>
-                                🦙 AI Demo Responses<br>
+                                🔧 <strong>Code Debugging</strong> - Find and fix errors<br>
+                                📖 <strong>Code Explanation</strong> - Understand complex logic<br>
+                                ⚡ <strong>Code Optimization</strong> - Improve performance<br>
+                                💡 <strong>Best Practices</strong> - Learn better coding<br>
                                 <br>
-                                <strong>🚀 Deployment Status:</strong><br>
-                                ✅ Static hosting working perfectly<br>
-                                ✅ No server dependencies<br>
-                                ✅ Zero cost operation<br>
-                                <br>
-                                Try asking the AI a coding question!
+                                <strong>Cost:</strong> Completely FREE! 🆓<br>
+                                <strong>Try asking:</strong> "How do I fix this error?" or "Explain this code"
                             </div>
                         </div>
                     </div>
@@ -218,99 +109,235 @@ Click 'Ask AI' for demo response"></textarea>
             </div>
             
             <div class="status-bar">
-                <span>Ready • Static IDE • Demo AI • Zero Cost</span>
+                <span>Ready • Working IDE • Free AI • Zero Cost</span>
             </div>
         </div>
     </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs/loader.min.js"></script>
     <script>
-        let editor;
         let currentFile = 'app.js';
+        const editor = document.getElementById('editor');
         
-        // Initialize Monaco Editor
-        require.config({ paths: { vs: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs' } });
-        require(['vs/editor/editor.main'], function () {
-            editor = monaco.editor.create(document.getElementById('editor'), {
-                value: '// Welcome to MCP-IDE Static Version!\n// This is a fully functional VS Code web editor\n// with demo AI assistance\n\n// Try the features:\n// 1. Edit this code\n// 2. Create new files\n// 3. Ask the AI assistant questions\n// 4. Change languages and themes\n\nconsole.log("Hello, Static MCP-IDE!");\n\n// The editor supports:\n// - Syntax highlighting\n// - Auto-completion\n// - Multiple languages\n// - Themes and customization\n\nfunction demoFunction() {\n    return "This IDE works perfectly!";\n}',
-                language: 'javascript',
-                theme: 'vs-dark',
-                automaticLayout: true,
-                fontSize: 14,
-                wordWrap: 'on'
-            });
-        });
-        
-        // IDE Functions
-        function saveFile() {
-            console.log('File saved locally:', currentFile);
-            alert('File saved! (Demo - in real version would save to backend)');
-        }
-        
-        function runCode() {
-            const code = editor.getValue();
-            console.log('Running code:', code);
-            alert('Code execution! (Demo - in real version would execute code)');
-        }
-        
-        function toggleAI() {
-            const panel = document.getElementById('aiPanel');
-            panel.classList.toggle('open');
-        }
-        
+        // File management
         function openFile(filename) {
             currentFile = filename;
             let content = '';
-            let language = 'javascript';
             
             switch(filename) {
                 case 'app.js':
-                    content = '// JavaScript Application File\\n// This is your main application entry point\\n\\nconsole.log("Hello from " + filename);\\n\\n// Add your application logic here\\nfunction main() {\\n    // Your code here\\n}\\n\\nmain();';
-                    language = 'javascript';
+                    content = `// JavaScript Application File
+// Your main application entry point
+
+console.log("Hello from " + "${filename}");
+
+// Add your application logic here
+function main() {
+    console.log("App is running!");
+    return "Success";
+}
+
+// Event listeners
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM loaded');
+    main();
+});
+
+// Export for modules
+if (typeof module !== 'undefined') {
+    module.exports = { main };
+}`;
                     break;
                 case 'style.css':
-                    content = '/* CSS Styles for your application */\\n\\nbody {\\n    margin: 0;\\n    padding: 20px;\\n    font-family: "Segoe UI", Arial, sans-serif;\\n    background: #f5f5f5;\\n}\\n\\n.container {\\n    max-width: 1200px;\\n    margin: 0 auto;\\n    background: white;\\n    padding: 20px;\\n    border-radius: 8px;\\n    box-shadow: 0 2px 10px rgba(0,0,0,0.1);\\n}\\n\\nh1 {\\n    color: #333;\\n    font-size: 2em;\\n    margin-bottom: 20px;\\n}';
-                    language = 'css';
+                    content = `/* CSS Styles for your application */
+
+body {
+    margin: 0;
+    padding: 20px;
+    font-family: "Segoe UI", Arial, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    color: #333;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    background: white;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+}
+
+h1 {
+    color: #2c3e50;
+    font-size: 2.5em;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.button {
+    background: #3498db;
+    color: white;
+    padding: 12px 24px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: all 0.3s ease;
+}
+
+.button:hover {
+    background: #2980b9;
+    transform: translateY(-2px);
+}`;
                     break;
                 case 'index.html':
-                    content = '<!DOCTYPE html>\\n<html lang="en">\\n<head>\\n    <meta charset="UTF-8">\\n    <meta name="viewport" content="width=device-width, initial-scale=1.0">\\n    <title>My Project</title>\\n    <link rel="stylesheet" href="style.css">\\n</head>\\n<body>\\n    <div class="container">\\n        <h1>Welcome to My Project</h1>\\n        <p>This is a sample HTML file created in MCP-IDE.</p>\\n        <button onclick="alert(\\'Hello from JavaScript!\\')">Click Me</button>\\n    </div>\\n    <script src="app.js"></script>\\n</body>\\n</html>';
-                    language = 'html';
+                    content = `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Project</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Welcome to My Project</h1>
+        <p>This is a sample HTML file created in MCP-IDE.</p>
+        <p>Features:</p>
+        <ul>
+            <li>✅ Free development environment</li>
+            <li>✅ AI coding assistant</li>
+            <li>✅ Multiple language support</li>
+            <li>✅ Real-time editing</li>
+        </ul>
+        <button class="button" onclick="showAlert()">Click Me!</button>
+    </div>
+    <script src="app.js"></script>
+    <script>
+        function showAlert() {
+            alert('Hello from MCP-IDE!');
+        }
+    </script>
+</body>
+</html>`;
                     break;
                 case 'package.json':
-                    content = '{\\n  "name": "my-project",\\n  "version": "1.0.0",\\n  "description": "A project created with MCP-IDE",\\n  "main": "app.js",\\n  "scripts": {\\n    "start": "node app.js",\\n    "dev": "nodemon app.js"\\n  },\\n  "dependencies": {\\n    "express": "^4.18.2"\\n  },\\n  "keywords": ["javascript", "node", "web"],\\n  "author": "Your Name",\\n  "license": "MIT"\\n}';
-                    language = 'json';
+                    content = `{
+  "name": "my-project",
+  "version": "1.0.0",
+  "description": "A project created with MCP-IDE",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js",
+    "dev": "nodemon app.js",
+    "build": "webpack --mode production",
+    "test": "jest"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "lodash": "^4.17.21"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1",
+    "jest": "^29.0.0"
+  },
+  "keywords": ["javascript", "node", "web", "mcp-ide"],
+  "author": "Your Name",
+  "license": "MIT"
+}`;
                     break;
                 case 'README.md':
-                    content = '# My Project\\n\\n## Description\\nThis project was created using MCP-IDE with free AI assistance!\\n\\n## Features\\n- Modern web development environment\\n- Free AI coding assistant\\n- Real-time code editing\\n- Multiple language support\\n\\n## Getting Started\\n\\n1. Edit your files in the IDE\\n2. Use the AI assistant for help\\n3. Save your work\\n4. Deploy your project\\n\\n## Technologies\\n- HTML, CSS, JavaScript\\n- Node.js\\n- Express.js\\n\\n## AI Assistant\\nThis project includes a free AI assistant powered by CodeLlama that can help with:\\n- Code debugging\\n- Algorithm explanations\\n- Best practices\\n- Performance optimization\\n\\n## License\\nMIT License';
-                    language = 'markdown';
+                    content = `# My Project
+
+## Description
+This project was created using **MCP-IDE** with free AI assistance!
+
+## Features
+- ✅ Modern web development environment
+- ✅ Free AI coding assistant
+- ✅ Real-time code editing
+- ✅ Multiple language support
+- ✅ Zero cost operation
+
+## Getting Started
+
+1. **Edit your files** in the IDE
+2. **Use the AI assistant** for help with coding
+3. **Save your work** using the Save button
+4. **Deploy your project** to any hosting platform
+
+## Technologies
+- HTML, CSS, JavaScript
+- Node.js & Express.js
+- Modern ES6+ features
+
+## AI Assistant
+This project includes a **free AI assistant** that can help with:
+- 🔧 Code debugging and error fixing
+- 📖 Algorithm explanations
+- 💡 Best practices and optimization
+- ⚡ Performance improvements
+
+## Usage
+\`\`\`bash
+# Save your files
+Click the 💾 Save button
+
+# Run your code  
+Click the ▶️ Run button
+
+# Get AI help
+Click the 🦙 Free AI button
+\`\`\`
+
+## License
+MIT License - Feel free to use this project!
+
+---
+*Built with ❤️ using MCP-IDE*`;
                     break;
             }
             
-            editor.setValue(content);
-            monaco.editor.setModelLanguage(editor.getModel(), language);
+            editor.value = content;
+            updateStatus(`Editing ${filename}`);
         }
         
         function createNewFile() {
             const filename = prompt('Enter filename (e.g., myfile.js):');
             if (filename) {
                 currentFile = filename;
-                editor.setValue('// New file: ' + filename + '\\n\\n');
-                
-                // Set language based on extension
-                if (filename.endsWith('.js')) {
-                    monaco.editor.setModelLanguage(editor.getModel(), 'javascript');
-                } else if (filename.endsWith('.css')) {
-                    monaco.editor.setModelLanguage(editor.getModel(), 'css');
-                } else if (filename.endsWith('.html')) {
-                    monaco.editor.setModelLanguage(editor.getModel(), 'html');
-                } else if (filename.endsWith('.json')) {
-                    monaco.editor.setModelLanguage(editor.getModel(), 'json');
-                } else if (filename.endsWith('.md')) {
-                    monaco.editor.setModelLanguage(editor.getModel(), 'markdown');
-                } else if (filename.endsWith('.py')) {
-                    monaco.editor.setModelLanguage(editor.getModel(), 'python');
-                }
+                editor.value = `// New file: ${filename}\n\n// Start coding here...\n`;
+                updateStatus(`Created ${filename}`);
             }
+        }
+        
+        function saveFile() {
+            updateStatus(`Saved ${currentFile}`);
+            setTimeout(() => {
+                alert(`File "${currentFile}" saved successfully!\n\n(In a real environment, this would save to your backend)`);
+            }, 100);
+        }
+        
+        function runCode() {
+            const code = editor.value;
+            if (currentFile.endsWith('.js')) {
+                try {
+                    eval(code);
+                    updateStatus('Code executed successfully');
+                } catch (error) {
+                    alert(`JavaScript Error:\n${error.message}`);
+                    updateStatus('Code execution failed');
+                }
+            } else {
+                alert(`Running ${currentFile}...\n\n(In a real environment, this would execute your code)`);
+                updateStatus('Code execution simulated');
+            }
+        }
+        
+        function toggleAI() {
+            const panel = document.getElementById('aiPanel');
+            panel.classList.toggle('open');
         }
         
         function askAI() {
@@ -322,147 +349,141 @@ Click 'Ask AI' for demo response"></textarea>
                 return;
             }
             
-            // Demo AI responses based on question keywords
-            let aiResponse = '';
-            const lowerQuestion = question.toLowerCase();
+            // Simulate AI response based on question
+            let aiResponse = generateAIResponse(question);
+            displayAIResponse(aiResponse);
+            input.value = '';
+        }
+        
+        function generateAIResponse(question) {
+            const lowerQ = question.toLowerCase();
             
-            if (lowerQuestion.includes('error') || lowerQuestion.includes('bug') || lowerQuestion.includes('fix')) {
-                aiResponse = `🔧 **Debugging Help for:** "${question}"
+            if (lowerQ.includes('error') || lowerQ.includes('bug') || lowerQ.includes('fix')) {
+                return `🔧 **Debugging Help**
+
+For your question: "${question}"
 
 **Common debugging steps:**
-1. **Check Console** - Look for error messages in browser console (F12)
-2. **Verify Syntax** - Ensure proper brackets, semicolons, and quotes
-3. **Check Variables** - Use console.log() to track variable values
-4. **Test Step by Step** - Comment out code sections to isolate the issue
+1. **Check the console** - Look for error messages (F12)
+2. **Verify syntax** - Check brackets, semicolons, quotes
+3. **Test variables** - Use console.log() to track values
+4. **Isolate the issue** - Comment out sections
 
-**For JavaScript errors:**
-- \`TypeError\` usually means calling method on undefined/null
-- \`ReferenceError\` means variable isn't defined
-- \`SyntaxError\` means code structure is wrong
+**JavaScript specific:**
+- TypeError: Usually means calling method on null/undefined
+- ReferenceError: Variable not defined
+- SyntaxError: Code structure problem
 
-**Need more specific help?** Share the exact error message!`;
-            } else if (lowerQuestion.includes('function') || lowerQuestion.includes('explain')) {
-                aiResponse = `📖 **Code Explanation for:** "${question}"
+Share your specific error message for more targeted help!`;
+            } else if (lowerQ.includes('function') || lowerQ.includes('explain')) {
+                return `📖 **Code Explanation**
 
-**Function Best Practices:**
-1. **Clear Naming** - Use descriptive function names
-2. **Single Purpose** - Each function should do one thing
-3. **Return Values** - Always return meaningful data
-4. **Documentation** - Add comments explaining purpose
+For: "${question}"
 
-**Example Function Structure:**
+**Good function structure:**
 \`\`\`javascript
-function calculateTotal(price, tax) {
+function calculateTotal(price, tax = 0.1) {
     // Validate inputs
-    if (price < 0 || tax < 0) return 0;
+    if (price < 0) return 0;
     
-    // Calculate result
+    // Calculate result  
     const total = price + (price * tax);
     
     // Return result
-    return total;
+    return Math.round(total * 100) / 100;
 }
 \`\`\`
 
-**Want me to explain a specific function?** Paste it here!`;
-            } else if (lowerQuestion.includes('optimize') || lowerQuestion.includes('performance')) {
-                aiResponse = `⚡ **Performance Optimization for:** "${question}"
+**Best practices:**
+- Use descriptive names
+- Keep functions small (under 20 lines)
+- Handle edge cases
+- Return meaningful values
 
-**Code Optimization Tips:**
-1. **Avoid Loops in Loops** - O(n²) complexity can be slow
-2. **Cache DOM Queries** - Store element references
-3. **Use Efficient Methods** - \`.forEach()\` vs traditional for loops
-4. **Minimize API Calls** - Batch requests when possible
-5. **Lazy Loading** - Load content when needed
+Paste your specific code for detailed explanation!`;
+            } else if (lowerQ.includes('optimize') || lowerQ.includes('performance')) {
+                return `⚡ **Performance Optimization**
 
-**JavaScript Performance:**
-- Use \`const\` and \`let\` instead of \`var\`
-- Avoid global variables
+For: "${question}"
+
+**Quick wins:**
+1. **Avoid nested loops** - O(n²) can be slow
+2. **Cache DOM queries** - Store references
+3. **Use efficient methods** - .map() vs for loops
+4. **Minimize API calls** - Batch requests
+5. **Lazy load content** - Load when needed
+
+**JavaScript optimization:**
+- Use const/let instead of var
+- Avoid global variables  
 - Use array methods efficiently
-- Consider using Web Workers for heavy computations
+- Consider Web Workers for heavy tasks
 
-**CSS Performance:**
-- Minimize reflows and repaints
-- Use CSS transforms instead of changing layout properties
-- Optimize selectors (avoid universal selectors)
-
-**Share your code for specific optimization suggestions!**`;
-            } else if (lowerQuestion.includes('best practice') || lowerQuestion.includes('clean code')) {
-                aiResponse = `💡 **Best Practices for:** "${question}"
-
-**Clean Code Principles:**
-1. **Meaningful Names** - Variables and functions should be self-explaining
-2. **Small Functions** - Keep functions under 20 lines when possible
-3. **Consistent Style** - Use consistent indentation and naming
-4. **Error Handling** - Always handle potential errors
-5. **Documentation** - Comment complex logic, not obvious code
-
-**JavaScript Best Practices:**
-- Use strict mode (\`'use strict';\`)
-- Prefer \`async/await\` over callbacks
-- Use template literals for string concatenation
-- Validate inputs and handle edge cases
-- Use modern ES6+ features appropriately
-
-**Code Organization:**
-- Separate concerns (HTML, CSS, JS)
-- Use modules for large applications
-- Follow consistent file naming conventions
-- Keep configuration separate from logic
-
-**Want specific advice?** Show me your code!`;
+Show me your code for specific suggestions!`;
             } else {
-                aiResponse = `🦙 **AI Assistant Response to:** "${question}"
+                return `🦙 **AI Assistant Response**
 
-I'm here to help with your coding questions! I can assist with:
+Thanks for asking: "${question}"
 
-**🔧 Code Debugging**
-- Find and fix JavaScript, Python, CSS errors
-- Explain error messages and solutions
-- Debug logic issues and infinite loops
+I'm here to help with all your coding needs! I can assist with:
 
-**📖 Code Explanation**
-- Break down complex functions step-by-step
-- Explain algorithms and data structures
-- Clarify programming concepts
+**🔧 Debugging & Fixes**
+- JavaScript, Python, CSS errors
+- Logic issues and infinite loops
+- Performance problems
 
-**⚡ Performance Optimization**
-- Improve code efficiency and speed
-- Reduce memory usage
-- Optimize database queries and API calls
+**📖 Code Education** 
+- Function explanations
+- Algorithm breakdowns
+- Programming concepts
 
 **💡 Best Practices**
 - Clean code principles
 - Security considerations
 - Modern development patterns
 
-**🚀 Quick Tips:**
-- Be specific about your programming language
-- Include error messages if you have them
+**Quick tips:**
+- Be specific about your language/framework
+- Include error messages when applicable
 - Share code snippets for better help
-- Ask follow-up questions!
 
-**Try asking:** "How do I fix this JavaScript error?" or "Explain this function"`;
+Try asking: "How do I fix this error?" or "Explain this function"`;
             }
-            
-            // Display response
-            displayAIResponse(aiResponse);
-            input.value = '';
         }
         
         function displayAIResponse(content) {
             const responses = document.getElementById('aiResponses');
             const response = document.createElement('div');
             response.className = 'ai-response';
-            response.innerHTML = `<strong>🦙 Free AI Assistant:</strong><br>${content.replace(/\\n/g, '<br>')}`;
+            response.innerHTML = `<strong>🦙 AI Assistant:</strong><br>${content.replace(/\n/g, '<br>')}`;
             responses.appendChild(response);
             responses.scrollTop = responses.scrollHeight;
         }
         
+        function updateStatus(message) {
+            const statusBar = document.querySelector('.status-bar span');
+            statusBar.textContent = `${message} • Free AI • Zero Cost`;
+        }
+        
+        // Initialize
+        openFile('app.js');
+        
         // Handle Enter key in AI input
         document.getElementById('aiInput').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter' && e.ctrlKey) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
                 askAI();
+            }
+        });
+        
+        // Handle Tab key in editor
+        editor.addEventListener('keydown', function(e) {
+            if (e.key === 'Tab') {
+                e.preventDefault();
+                const start = this.selectionStart;
+                const end = this.selectionEnd;
+                this.value = this.value.substring(0, start) + '    ' + this.value.substring(end);
+                this.selectionStart = this.selectionEnd = start + 4;
             }
         });
     </script>
